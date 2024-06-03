@@ -1,7 +1,10 @@
 name = "CFTransport"
 uuid = "aafcb771-6be4-4a54-aeb4-fb9a94868d38"
 authors = ["The ClimFlows contributors"]
-version = "1.0.0-DEV"
+version = "0.1.0-DEV"
+
+[deps]
+ManagedLoops = "36a4119d-6b73-4371-88fe-ba2d91f5495d"
 
 [compat]
 julia = "1.8"
