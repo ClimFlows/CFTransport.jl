@@ -1,6 +1,7 @@
 module CFTransport
 
 using ManagedLoops: @loops, @vec
+using CFDomains: HVLayout, VHLayout, PressureCoordinate
 
 export GodunovScheme, VanLeerScheme
 export concentrations!, slopes!, fluxes!, FV_update!
@@ -55,5 +56,6 @@ include("julia/finite_volume.jl")
 include("julia/godunov.jl")
 include("julia/vanleer.jl")
 include("julia/limiters.jl")
+include("julia/remap.jl")
 
 end # module
