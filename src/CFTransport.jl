@@ -51,8 +51,8 @@ end
 
 @inline half(x) = @fastmath x/2
 
-#include("julia/finite_volume.jl")
-#include("julia/godunov.jl")
+include("julia/finite_volume.jl")
+include("julia/godunov.jl")
 #include("julia/vanleer.jl")
 #include("julia/limiters.jl")
 
