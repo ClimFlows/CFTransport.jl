@@ -53,7 +53,7 @@ end
 
 include("julia/finite_volume.jl")
 include("julia/godunov.jl")
-#include("julia/vanleer.jl")
-#include("julia/limiters.jl")
+include("julia/vanleer.jl")
+include("julia/limiters.jl")
 
 end # module
