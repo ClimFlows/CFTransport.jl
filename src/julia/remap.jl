@@ -1,5 +1,16 @@
 #=============================== Remapping fluxes ===========================#
 
+"""
+remap_fluxes_ps!(flux, newmg, mg, layout, vcoord::PressureCoordinate)
+
+Computes the target (pseudo-)mass distribution `newmg`
+prescribed by pressure-based coordinate `vcoord` and surface pressure `ps`,
+as well as the vertical (pseudo-)mass flux `flux` needed to remap
+from current mass distribution `mg` to target `newmg`.
+`layout` specifies the data layout, see `VHLayout` and `HVLayout`.
+"""
+function remap_fluxes_ps! end
+
 @inline remap_fluxes_ps!(backend, flux, newmg, mg, layout::VHLayout, vcoord::PressureCoordinate) =
     remap_fluxes_VH!(backend, flatten(flux, layout), flatten(newmg, layout), flatten(mg, layout), vcoord)
 
