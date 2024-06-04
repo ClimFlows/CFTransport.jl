@@ -82,22 +82,22 @@ end
         N = nlayer(vcoord)
         masstot = @view flux[:, N+1] # use flux as buffer
         # total mass
-        @vec for ij in range
+        #=@vec=# for ij in range
             masstot[ij] = mass[ij, 1]
         end
         for k = 2:N
-            @vec for ij in range
+            #=@vec=# for ij in range
                 masstot[ij] += mass[ij, k]
             end
         end
         # integrate vertically the difference between
         # current mass distribution and target mass distribution
         # to get fluxes through interfaces
-        @vec for ij in range
+        #=@vec=# for ij in range
             flux[ij, 1] = 0
         end
         for k = 1:N
-            @vec for ij in range
+            #=@vec=# for ij in range
                 newmass[ij, k] = mass_level(2k - 1, masstot[ij], vcoord)
                 flux[ij, k+1] = flux[ij, k] + (mass[ij, k] - newmass[ij, k])
             end

@@ -92,8 +92,8 @@ apply_stencil(index, indices, stencil::S) where S = ApplyStencil{index, indices,
 @inline function (kernel::ApplyStencil{1, 2})((irange, jrange), arrays)
     for j in jrange
         @simd for i in irange
-            slices = tuple(((@inbounds @view x[:,j]) for x in arrays)...)
-            kernel.stencil(i, slices)
+            slice(x) = @inbounds @view x[:,j]
+            kernel.stencil(i, map(slice, arrays))
         end
     end
     nothing
@@ -103,8 +103,8 @@ end
 @inline function (kernel::ApplyStencil{2, 2})((irange, jrange), arrays)
     for j in jrange
         @simd for i in irange
-            slices = tuple(((@inbounds @view x[i,:]) for x in arrays)...)
-            kernel.stencil(j, slices)
+            slice(x) = @inbounds @view x[i,:]
+            kernel.stencil(j, map(slice, arrays))
         end
     end
     nothing

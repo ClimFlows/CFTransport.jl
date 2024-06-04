@@ -44,7 +44,7 @@ end
 @loops function invoke_step(_, ranges, step, op, arrays)
     let (ri,rj) = ranges
         for j in rj
-            @vec for i in ri
+            #= @vec =# for i in ri
                 @inline step((i,j), op, arrays)
             end
         end
