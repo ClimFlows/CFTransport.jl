@@ -8,8 +8,7 @@ export GodunovScheme, VanLeerScheme
 export concentrations!, slopes!, fluxes!, FV_update!
 
 macro fast(code)
-#    debug = haskey(ENV, "GF_DEBUG") && (ENV["GF_DEBUG"]!="")
-    debug = true
+    debug = haskey(ENV, "GF_DEBUG") && (ENV["GF_DEBUG"]!="")
     return debug ? esc(code) : esc(quote @inbounds $code end)
 end
 
