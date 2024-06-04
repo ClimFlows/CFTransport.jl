@@ -1,13 +1,15 @@
 module CFTransport
 
+using MutatingOrNot: Void
 using ManagedLoops: @loops, @vec
-using CFDomains: HVLayout, VHLayout, PressureCoordinate
+using CFDomains: HVLayout, VHLayout, PressureCoordinate, nlayer, mass_level
 
 export GodunovScheme, VanLeerScheme
 export concentrations!, slopes!, fluxes!, FV_update!
 
 macro fast(code)
-    debug = haskey(ENV, "GF_DEBUG") && (ENV["GF_DEBUG"]!="")
+#    debug = haskey(ENV, "GF_DEBUG") && (ENV["GF_DEBUG"]!="")
+    debug = true
     return debug ? esc(code) : esc(quote @inbounds $code end)
 end
 
@@ -37,7 +39,7 @@ crop(a,b)=Crop{a,b}()
 @inline function invoke(step::Fun, op::OneDimOp{dim,2}, backend, ranges, only::Only, arrays) where {dim,Fun,Only}
     step = expand_stencil{dim, 2}(step)
     ranges = restrict(op, only, ranges)
-    inkoke_step(backend, ranges, step, op, arrays)
+    invoke_step(backend, ranges, step, op, arrays)
 end
 
 @loops function invoke_step(_, ranges, step, op, arrays)
@@ -56,6 +58,6 @@ include("julia/finite_volume.jl")
 include("julia/godunov.jl")
 include("julia/vanleer.jl")
 include("julia/limiters.jl")
-include("julia/remap.jl")
+include("julia/remap_fluxes.jl")
 
 end # module

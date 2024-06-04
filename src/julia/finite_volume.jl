@@ -17,7 +17,7 @@ abstract type OneDimFV{kind,Dim,Rank} <: OneDimOp{Dim,Rank} end
 end
 
 function FV_update!(backend, fv::OneDimFV{:density}, newmq_, mq_, fluxq_)
-    invoke(fv, backend, axes(fluxq), crop(0,1), (newmq_, mq_, fluxq_)
+    invoke(fv, backend, axes(fluxq_), crop(0,1), (newmq_, mq_, fluxq_)
     ) do i, ::Any, (newmq, mq, fluxq)
         @fast newmq[i] = mq[i] + (fluxq[i]-fluxq[i+1])
     end

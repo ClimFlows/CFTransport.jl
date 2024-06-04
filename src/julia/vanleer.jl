@@ -54,15 +54,15 @@ function slopes!(backend, vl::VLS, dq, q)
     end
 end
 
-function fluxes!(backend, vl::VLS, fluxq, mass, flux, q, dq)
-    invoke(vl, backend, axes(fluxq), crop(1,1), (fluxq, mass, flux, q, dq)
-    ) do i, vl, (fluxq, m, flux, q, dq)
+function fluxes!(backend, vl::VLS, fluxq_, #==# dq_, q_, mass_, flux_)
+    invoke(vl, backend, axes(fluxq_), crop(1,1), (fluxq_, dq_, q_, mass_, flux_)
+    ) do i, vl, (fluxq, dq, q, mass, flux)
         @fastmath @fast begin
             flx = flux[i]
             # upward transport, upwind side is at lower level
-            qq_up   = q[i-1] + half(1-flx*inv(m[i-1]))*dq[i-1]
+            qq_up   = q[i-1] + half(1-flx*inv(mass[i-1]))*dq[i-1]
             # downward transport, upwind side is at upper level
-            qq_down = q[i] - half(1+flx*inv(m[i]))*dq[i]
+            qq_down = q[i] - half(1+flx*inv(mass[i]))*dq[i]
             # select upward or downward without branching
             fluxq[i] = half( flx*(qq_up+qq_down)+ abs(flx)*(qq_up-qq_down) )
         end
