@@ -49,22 +49,22 @@ function call_vls(vl::VLS{:density}, backend, newmq, mq, flux, m)
 end
 
 function slopes!(backend, vl::VLS, dq, q)
-    invoke(vl, backend, axes(dq), crop(1,1), (dq,q) ) do i, vl, (dq,q)
-        @fast dq[i] = limited_slope(i, q, vl.limiter)
+    invoke(vl, backend, axes(dq), crop(1,1), (dq,q) ) do (i,j), vl, (dq,q)
+        @fast dq[i,j] = limited_slope((i,j), q, vl.limiter)
     end
 end
 
 function fluxes!(backend, vl::VLS, fluxq_, #==# dq_, q_, mass_, flux_)
     invoke(vl, backend, axes(fluxq_), crop(1,1), (fluxq_, dq_, q_, mass_, flux_)
-    ) do i, vl, (fluxq, dq, q, mass, flux)
+    ) do (i,j), vl, (fluxq, dq, q, mass, flux)
         @fastmath @fast begin
-            flx = flux[i]
+            flx = flux[i,j]
             # upward transport, upwind side is at lower level
-            qq_up   = q[i-1] + half(1-flx*inv(mass[i-1]))*dq[i-1]
+            qq_up   = q[i-1,j] + half(1-flx*inv(mass[i-1,j]))*dq[i-1,j]
             # downward transport, upwind side is at upper level
-            qq_down = q[i] - half(1+flx*inv(mass[i]))*dq[i]
+            qq_down = q[i,j] - half(1+flx*inv(mass[i,j]))*dq[i,j]
             # select upward or downward without branching
-            fluxq[i] = half( flx*(qq_up+qq_down)+ abs(flx)*(qq_up-qq_down) )
+            fluxq[i,j] = half( flx*(qq_up+qq_down)+ abs(flx)*(qq_up-qq_down) )
         end
     end
 end

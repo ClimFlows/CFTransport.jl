@@ -18,18 +18,18 @@ end
 
 function FV_update!(backend, fv::OneDimFV{:density}, newmq_, mq_, fluxq_)
     invoke(fv, backend, axes(fluxq_), crop(0,1), (newmq_, mq_, fluxq_)
-    ) do i, ::Any, (newmq, mq, fluxq)
-        @fast newmq[i] = mq[i] + (fluxq[i]-fluxq[i+1])
+    ) do (i,j), ::Any, (newmq, mq, fluxq)
+        @fast newmq[i,j] = mq[i,j] + (fluxq[i,j]-fluxq[i+1,j])
     end
 end
 
 function FV_update!(backend, fv::OneDimFV{:scalar}, newq_, q_, fluxq_, flux_, m_)
     invoke(fv, backend, axes(fluxq_), crop(0,1), (newq_, q_, fluxq_, flux_, m_)
-    ) do i, ::Any, (newq, q, fluxq, flux, m)
+    ) do (i,j), ::Any, (newq, q, fluxq, flux, m)
         @fast begin
-            mq      = m[i]*q[i] + (fluxq[i]-fluxq[i+1])
-            newm    = m[i]      + (flux[i]  -flux[i+1])
-            newq[i] = mq*inv(newm)
+            mq      = m[i,j]*q[i,j] + (fluxq[i,j]-fluxq[i+1,j])
+            newm    = m[i,j]      + (flux[i,j]  -flux[i+1,j])
+            newq[i,j] = mq*inv(newm)
         end
     end
 end

@@ -25,4 +25,4 @@ for SIMD vectorization.
     return d * sign(c) * (1+sign(a*b))/8 # sign(c)*min((a+b)/2, 2a,2b)
 end
 
-@inline limited_slope(i, q, limiter) = @fast limiter(q[i]-q[i-1], q[i+1]-q[i])
+@inline limited_slope((i,j), q, limiter) = @fast limiter(q[i,j]-q[i-1,j], q[i+1,j]-q[i,j])
