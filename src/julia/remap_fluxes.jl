@@ -15,14 +15,18 @@ function remap_fluxes! end
 #      fun(non-fields, output fields..., #==# scratch #==# input fields...)
 # or   fun(non-fields, output fields..., #==# input fields...)
 
-function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::VHLayout, flux, newmass, #==# mass)
+
+const AA{Rank, T} = AbstractArray{T, Rank}            # to dispatch on AA{Rank}
+const AAV{Rank, T} = Union{Void, AbstractArray{T, Rank}} # AA or Void (output arguments)
+
+function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::VHLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
     newmass = alloc_newmass(newmass, layout, mass)
     flux = alloc_flux(flux, layout, mass)
     remap_fluxes_VH!(mgr, vcoord, flux, newmass, flatten(mass, layout))
     return flux, newmass
 end
 
-function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::HVLayout, flux, newmass, #==# mass)
+function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::HVLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
     newmass = alloc_newmass(newmass, layout, mass)
     flux = alloc_flux(flux, layout, mass)
     remap_fluxes_HV!(mgr, vcoord, flux, newmass, flatten(mass, layout))
@@ -37,7 +41,7 @@ flatten(x, ::VHLayout{2}) = reshape(x, size(x, 1), :)
 flatten(::HVLayout) = HVLayout{1}()
 flatten(::VHLayout) = VHLayout{1}()
 
-# allocate output argumenShellt when it is `void`
+# allocate output argument when it is `void`
 alloc_newmass(newmass, layout, _) = flatten(newmass, layout)
 alloc_newmass(::Void, layout, mass) = similar(flatten(mass, layout))
 alloc_flux(flux, layout, _) = flatten(flux, layout)
