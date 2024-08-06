@@ -42,12 +42,15 @@ function call_godunov!(scheme::GS{:density}, backend, newmq, mq, flux, m)
     FV_update!(backend, scheme, newmq, mq, fluxq)
 end
 
+slopes!(mgr, vl::GodunovScheme, dq, q) = nothing
+fluxes!(mgr, vl::GodunovScheme, fluxq, dq, q, mass, flux) = fluxes!(mgr, vl, fluxq, flux, q)
+
 function fluxes!(backend, scheme::GS, fluxq, flux, q)
     invoke(scheme, backend, axes(fluxq), crop(1,1), (fluxq, flux, q)
-    ) do i, scheme, (fluxq, flux, q)
+    ) do (i,j), scheme, (fluxq, flux, q)
         @fast begin
-            flx, qq_up, qq_down = flux[i], q[i-1], q[i]
-            fluxq[i] = (1//2) * ( flx*(qq_up+qq_down)+ abs(flx)*(qq_up-qq_down) )
+            flx, qq_up, qq_down = flux[i, j], q[i-1, j], q[i, j]
+            fluxq[i, j] = (1//2) * ( flx*(qq_up+qq_down)+ abs(flx)*(qq_up-qq_down) )
         end
     end
 end
