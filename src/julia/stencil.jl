@@ -58,9 +58,32 @@ slices(::xps{1,2}, (i,j), arrays) = (i,j), map(Permute{1,2}, arrays)
 @Base.propagate_inbounds Base.getindex(p::Permute{1,2}, i, j) = p.array[i,j]
 @Base.propagate_inbounds Base.setindex!(p::Permute{1,2}, val, i, j) = (p.array[i,j]=val)
 
+# invoke passes xp = xps{3,3}(fun) to invoke_step3
+# invoke_step3 loops on (i,j), passes (i,j) to xp
+# xp :
+#  * passes (i,j) to slices, receives (j,i) and p = Permute{2,2}
+#  * calls fun at index (j,i) on map(p, arrays)
+# fun :
+#  * gets (j,i) and map(p,arrays)
+#  * gets/sets array[j,i]
+# p(array)[j,i] = array[i,j]
 slices(::xps{2,2}, (i,j), arrays) = (j,i), map(Permute{2,2}, arrays)
-@Base.propagate_inbounds Base.getindex(p::Permute{2,2}, i, j) = p.array[j,i]
-@Base.propagate_inbounds Base.setindex!(p::Permute{2,2}, val, i, j) = (p.array[j,i]=val)
+@Base.propagate_inbounds Base.getindex(p::Permute{2,2}, j, i) = p.array[i, j]
+@Base.propagate_inbounds Base.setindex!(p::Permute{2,2}, val, j, i) = (p.array[i,j]=val)
+
+# invoke passes xp = xps{3,3}(fun) to invoke_step3
+# invoke_step3 loops on (i,j,k), passes (i,j,k) to xp
+# xp :
+#  * passes (i,j,k) to slices, receives (k,(i,j)) and p = Permute{3,3}
+#  * calls fun at index (k,(i,j)) on map(p, arrays)
+# fun :
+#  * gets k, (i,j) and map(p,arrays)
+#  * gets/sets array[k±1, (i,j)]
+# p(array)[k±1,(i,j)] = array[i,j,k±1]
+
+slices(::xps{3,3}, (i,j,k), arrays) = (k,(i,j)), map(Permute{3,3}, arrays)
+@Base.propagate_inbounds Base.getindex(p::Permute{3,3}, k, (i, j)) = p.array[i,j,k]
+@Base.propagate_inbounds Base.setindex!(p::Permute{3,3}, val, k, (i, j)) = (p.array[i,j,k]=val)
 
 #=
 
