@@ -12,8 +12,6 @@ macro fast(code)
     return debug ? esc(code) : esc(quote @inbounds $code end)
 end
 
-include("julia/stencil.jl")
-
 """
     abstract type OneDimOp{dim,rank} end
 
@@ -21,52 +19,7 @@ One-dimensional operator acting on dimension `dim` of arrays of rank `rank`.
 """
 abstract type OneDimOp{Dim,Rank} end
 
-# excludes from range `1:N` `a` items at the start, and `b` items at the end,
-struct Crop{a,b} end
-crop(a,b)=Crop{a,b}()
-(::Crop{a,b})(N::Int) where {a,b} = (1+a):(N-b)
-
-# enforces restriction `r` on dimension `k` :
-# replaces dimension `dim_k` by the result of r(size(dim_k)),
-# e.g. 1:N => 2:N-1
-@inline restrict(::OneDimOp{1,1}, r::Fun, (dim,) )      where Fun =  r(length(dim))
-@inline restrict(::OneDimOp{1,2}, r::Fun, (dim1,dim2) ) where Fun = (r(length(dim1)), dim2)
-@inline restrict(::OneDimOp{2,2}, r::Fun, (dim1,dim2) ) where Fun = (dim1, r(length(dim2)))
-@inline restrict(::OneDimOp{3,3}, r::Fun, (dim1,dim2,dim3) ) where Fun = (dim1, dim2, r(length(dim3)))
-
-# applies function `step` related to operator `op` to `arrays` on `backend`,
-# after restricting dimension `dim` to only(size(dim))
-@inline function invoke(step::Fun, op::OneDimOp{dim,2}, backend, ranges, only::Only, arrays) where {dim,Fun,Only}
-    step = expand_stencil{dim, 2}(step)
-    ranges = restrict(op, only, ranges)
-    invoke_step2(backend, ranges, step, op, arrays)
-end
-
-@inline function invoke(step::Fun, op::OneDimOp{dim,3}, backend, ranges, only::Only, arrays) where {dim,Fun,Only}
-    step = expand_stencil{dim, 3}(step)
-    ranges = restrict(op, only, ranges)
-    invoke_step3(backend, ranges, step, op, arrays)
-end
-
-@loops function invoke_step2(_, ranges, step, op, arrays)
-    let (ri,rj) = ranges
-        for j in rj
-            #= @vec =# for i in ri
-                @inline step((i,j), op, arrays)
-            end
-        end
-    end
-end
-
-@loops function invoke_step3(_, ranges, step, op, arrays)
-    let (ri,rj,rk) = ranges
-        for j in rj, k in rk
-            #= @vec =# for i in ri
-                @inline step((i,j,k), op, arrays)
-            end
-        end
-    end
-end
+include("julia/stencil.jl")
 
 @inline half(x) = @fastmath x/2
 
