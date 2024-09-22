@@ -59,6 +59,7 @@ end
         # flux[N+1, nx] (interfaces)
         # mass[N+1, nx]  (levels)
         # ps[nx]  (levels)
+        N = nlayer(vcoord)
         for ij in range
             # total mass in column ij
             masstot = mass[1, ij]
