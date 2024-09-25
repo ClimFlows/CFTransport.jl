@@ -1,7 +1,7 @@
 name = "CFTransport"
 uuid = "aafcb771-6be4-4a54-aeb4-fb9a94868d38"
 authors = ["The ClimFlows contributors"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 CFDomains = "3699aaca-035b-4155-96ec-eecb526248de"
