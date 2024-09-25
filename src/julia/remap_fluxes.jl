@@ -1,32 +1,31 @@
 #============== Remapping fluxes ============#
 
 """
-    remap_fluxes!(flux, newmass, mass, layout, vcoord::PressureCoordinate)
+    remap_fluxes!(mgr, mcoord::CFDomains.MassCoordinate, layout, flux, newmass, mass)
 
 Computes the target (pseudo-)mass distribution `newmass`
-prescribed by pressure-based coordinate `vcoord` and surface pressure `ps`,
+prescribed by mass coordinate `mcoord` and current mass distribution `mass`,
 as well as the vertical (pseudo-)mass flux `flux` needed to remap
 from current mass distribution `mass` to target `newmass`.
-`layout` specifies the data layout, see `VHLayout` and `HVLayout`.
+`layout` specifies the data layout, see `CFDoamins.VHLayout` and `CFDomains.HVLayout`.
 """
 function remap_fluxes! end
 
 # convention:
-#      fun(non-fields, output fields..., #==# scratch #==# input fields...)
-# or   fun(non-fields, output fields..., #==# input fields...)
-
+#    fun(non-fields, output fields..., #==# input fields...)
+# where scratch space is considered an output.
 
 const AA{Rank, T} = AbstractArray{T, Rank}            # to dispatch on AA{Rank}
 const AAV{Rank, T} = Union{Void, AbstractArray{T, Rank}} # AA or Void (output arguments)
 
-function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::VHLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
+function remap_fluxes!(mgr, vcoord::MassCoordinate, layout::VHLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
     newmass = alloc_newmass(newmass, layout, mass)
     flux = alloc_flux(flux, layout, mass)
     remap_fluxes_VH!(mgr, vcoord, flux, newmass, flatten(mass, layout))
     return flux, newmass
 end
 
-function remap_fluxes!(mgr, vcoord::PressureCoordinate, layout::HVLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
+function remap_fluxes!(mgr, vcoord::MassCoordinate, layout::HVLayout, flux::AAV{N}, newmass::AAV{N}, #==# mass::AA{N}) where N
     newmass = alloc_newmass(newmass, layout, mass)
     flux = alloc_flux(flux, layout, mass)
     remap_fluxes_HV!(mgr, vcoord, flux, newmass, flatten(mass, layout))
@@ -59,7 +58,8 @@ end
         # flux[N+1, nx] (interfaces)
         # mass[N+1, nx]  (levels)
         # ps[nx]  (levels)
-        for ij in range
+        N = nlayer(vcoord)
+        @inbounds for ij in range
             # total mass in column ij
             masstot = mass[1, ij]
             for k = 2:N

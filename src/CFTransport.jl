@@ -2,7 +2,7 @@ module CFTransport
 
 using MutatingOrNot: Void
 using ManagedLoops: @loops, @vec
-using CFDomains: HVLayout, VHLayout, PressureCoordinate, nlayer, mass_level
+using CFDomains: HVLayout, VHLayout, MassCoordinate, nlayer, mass_level
 
 export GodunovScheme, VanLeerScheme
 export concentrations!, slopes!, fluxes!, FV_update!
