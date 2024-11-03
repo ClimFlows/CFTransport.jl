@@ -58,6 +58,6 @@ include("julia/godunov.jl")
 include("julia/vanleer.jl")
 include("julia/limiters.jl")
 include("julia/remap_fluxes.jl")
-include("julia/voronoi_stencils.jl")
+include("julia/voronoiSLFV.jl")
 
 end # module

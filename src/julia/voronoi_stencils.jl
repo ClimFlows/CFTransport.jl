@@ -18,6 +18,33 @@ using CFDomains: VHLayout as VH, HVLayout as HV
     Fix(get_limiter, (layout, v, cell, neighbours, shifts))
 end
 
+@gen get_limiter(::VH, ::Val{deg}, cell, neighbours, shifts, q, gradq3d) where {deg} =
+    quote
+        # gradq3d is expected to be a tuple (gx,gy,gz)
+        # q is expected to have layout [k, cell] (VHLayout)
+        # all values of q are shifted by qcenter
+        # calculate the min and max of q over the current primal cell and its neighbours
+        qcenter = q[cell]
+        dq = @unroll (q[neighbours[iedge]] - qcenter for iedge = 1:$deg)
+        mini = min(zero(qcenter), minimum(dq))
+        maxi = max(zero(qcenter), maximum(dq))
+
+        # we represent alpha as num/den so that at most one division is needed, after the loop
+        num, den = one(qcenter), one(qcenter)
+        @unroll for iedge = 1:$deg
+            dxyz = shifts[iedge]
+            edge_est = sum(gradq3d[dim] * dxyz[dim] for dim = 1:3)
+            edge_est > maxi &&
+                num * edge_est > den * maxi &&
+                ((num, den) = (maxi, edge_est))
+            edge_est < mini &&
+                num * edge_est < den * mini &&
+                ((num, den) = (mini, edge_est))
+        end
+        return num < den ? num / den : one(den)
+    end
+
+
 @gen get_limiter(::VH, ::Val{deg}, cell, neighbours, shifts, q, gradq3d, k) where {deg} =
     quote
         # gradq3d is expected to have layout [k, dim, cell] (VDHLayout)
