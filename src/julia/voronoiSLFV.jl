@@ -49,7 +49,7 @@ function backwards_trajectories!(
 )
     # carrier mass and flux => normal component of carrier velocity
     Udt = similar!(scratch, mflux)
-    #= @with mgr, =# 
+    #= @with mgr, =#
     let edges = eachindex(vsphere.xyz_e)
         for edge in edges
             le, avg = vsphere.le[edge], average_ie(vsphere, edge)
@@ -57,7 +57,7 @@ function backwards_trajectories!(
         end
     end
     # dx = Udt = normal component => dy = tangential component => disp = displacement
-    disp = similar!(disp_, mflux, NTuple{3, eltype(mass)})
+    disp = similar!(disp_, mflux, NTuple{3,eltype(mass)})
     #= @with mgr, =#
     let edges = eachindex(vsphere.xyz_e)
         for edge in edges
@@ -67,7 +67,8 @@ function backwards_trajectories!(
             dx, dy = Udt[edge], perp(vsphere, edge)(Udt)
             center = upwind_cell(vsphere, edge)(dx, vsphere.xyz_i)
             disp[edge] = @unroll (
-                (xyz[dim] - center[dim]) - (dx * norm[dim] + dy * tang[dim]) / 2 for dim = 1:3
+                (xyz[dim] - center[dim]) - (dx * norm[dim] + dy * tang[dim]) / 2 for
+                dim = 1:3
             )
         end
     end
@@ -113,7 +114,7 @@ function SLFV_flux!(
 )
     q = @. mgr[q_] = qmass / mass
     gradq = similar!(gradq_, qmass, NTuple{3,eltype(mass)})
-    #= @with mgr, =# 
+    #= @with mgr, =#
     let cells = eachindex(vsphere.xyz_i)
         for cell in cells
             deg = vsphere.primal_deg[cell]
@@ -130,7 +131,7 @@ function SLFV_flux!(
         for edge in edges
             flux = mflux[edge]
             up = upwind_cell(vsphere, edge)
-            qflux[edge] = flux * (up(flux,q) + dot(up(flux, gradq), disp[edge]))
+            qflux[edge] = flux * (up(flux, q) + dot(up(flux, gradq), disp[edge]))
         end
     end
     return qflux, gradq, q
@@ -154,31 +155,30 @@ dot((a, b, c)::T, (x, y, z)::T) where {T<:NTuple{3}} = muladd(a, x, muladd(b, y,
     Fix(get_limiter, (layout, v, cell, neighbours, shifts))
 end
 
-@gen get_limiter(::VH, ::Val{deg}, cell, neighbours, shifts, q, gradq3d) where {deg} =
-    quote
-        # gradq3d is expected to be a tuple (gx,gy,gz)
-        # q is expected to have layout [k, cell] (VHLayout)
-        # min and max of q-qcenter over the current primal cell and its neighbours
-        qcenter = q[cell]
-        mini, maxi = zero(qcenter), zero(qcenter)
-        @unroll for iedge = 1:$deg
-            dq = q[neighbours[iedge]] - qcenter
-            mini = min(mini, dq)
-            maxi = max(maxi, dq)
-        end
-        # min and max of linear reconstruction evaluated at edge midpoints
-        edge_mini, edge_maxi = mini, maxi
-        @unroll for iedge = 1:$deg
-            dxyz = shifts[iedge]
-            edge_est = sum(gradq3d[cell][dim] * dxyz[dim] for dim = 1:3)
-            edge_mini = min(edge_est, edge_mini)
-            edge_maxi = max(edge_est, edge_maxi)
-        end
-        # reduce gradient if reconstructed values overshoot
-        ratio_mini = (edge_mini<mini) ? mini/edge_mini : one(mini) # >=0
-        ratio_maxi = (edge_maxi>maxi) ? maxi/edge_maxi : one(maxi) # >=0
-        return max(ratio_mini, ratio_maxi)
+@gen get_limiter(::VH, ::Val{deg}, cell, neighbours, shifts, q, gradq3d) where {deg} = quote
+    # gradq3d is expected to be a tuple (gx,gy,gz)
+    # q is expected to have layout [k, cell] (VHLayout)
+    # min and max of q-qcenter over the current primal cell and its neighbours
+    qcenter = q[cell]
+    mini, maxi = zero(qcenter), zero(qcenter)
+    @unroll for iedge = 1:$deg
+        dq = q[neighbours[iedge]] - qcenter
+        mini = min(mini, dq)
+        maxi = max(maxi, dq)
     end
+    # min and max of linear reconstruction evaluated at edge midpoints
+    edge_mini, edge_maxi = mini, maxi
+    @unroll for iedge = 1:$deg
+        dxyz = shifts[iedge]
+        edge_est = sum(gradq3d[dim] * dxyz[dim] for dim = 1:3)
+        edge_mini = min(edge_est, edge_mini)
+        edge_maxi = max(edge_est, edge_maxi)
+    end
+    # reduce gradient if reconstructed values overshoot
+    ratio_mini = (edge_mini < mini) ? mini / edge_mini : one(mini) # >=0
+    ratio_maxi = (edge_maxi > maxi) ? maxi / edge_maxi : one(maxi) # >=0
+    return min(ratio_mini, ratio_maxi)
+end
 
 @gen get_limiter(::VH, ::Val{deg}, cell, neighbours, shifts, q, gradq3d, k) where {deg} =
     quote
@@ -201,9 +201,9 @@ end
             edge_maxi = max(edge_est, edge_maxi)
         end
         # reduce gradient if reconstructed values overshoot
-        ratio_mini = (edge_mini<mini) ? mini/edge_mini : one(mini) # >=0
-        ratio_maxi = (edge_maxi>maxi) ? maxi/edge_maxi : one(maxi) # >=0
-        return max(ratio_mini, ratio_maxi)
+        ratio_mini = (edge_mini < mini) ? mini / edge_mini : one(mini) # >=0
+        ratio_maxi = (edge_maxi > maxi) ? maxi / edge_maxi : one(maxi) # >=0
+        return min(ratio_mini, ratio_maxi)
     end
 
 # to be removed later
@@ -216,19 +216,17 @@ end
         mini = min(zero(qcenter), minimum(dq))
         maxi = max(zero(qcenter), maximum(dq))
 
-        # we represent alpha as num/den so that at most one division is needed, after the loop
-        num, den = one(qcenter), one(qcenter)
+        alpha = one(qcenter)
         @unroll for iedge = 1:$deg
             dxyz = shifts[iedge]
             edge_est = sum(gradq3d[dim, cell, k] * dxyz[dim] for dim = 1:3)
-            edge_est > maxi &&
-                num * edge_est > den * maxi &&
-                ((num, den) = (maxi, edge_est))
-            edge_est < mini &&
-                num * edge_est < den * mini &&
-                ((num, den) = (mini, edge_est))
+            if edge_est > maxi
+                alpha = min(alpha, maxi / edge_est) # 0 <= maxi < edge_est  ==> alpha <= 1
+            elseif edge_est < mini
+                alpha = min(alpha, mini / edge_est) # edge_est < mini <= 0  ==> alpha <= 1
+            end
         end
-        return num < den ? num / den : one(den)
+        return alpha # ∈ [0,1]
     end
 
 end # module
