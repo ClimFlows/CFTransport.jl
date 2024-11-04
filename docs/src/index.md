@@ -10,5 +10,5 @@ Documentation for [CFTransport](https://github.com/ClimFlows/CFTransport.jl).
 ```
 
 ```@autodocs
-Modules = [CFTransport]
+Modules = [CFTransport, CFTransport.VoronoiSLFV]
 ```
