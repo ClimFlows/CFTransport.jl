@@ -151,7 +151,7 @@ dot((a, b, c)::T, (x, y, z)::T) where {T<:NTuple{3}} = muladd(a, x, muladd(b, y,
 # internal
 @gen limiter(vsphere, layout, cell, v::Val{deg}) where {deg} = quote
     neighbours = @unroll (vsphere.primal_neighbour[edge, cell] for edge = 1:$deg)
-    shifts = @unroll (vsphere.cen2edge[edge, cell] for edge = 1:$deg)
+    shifts = @unroll (vsphere.cen2vertex[edge, cell] for edge = 1:$deg)
     Fix(get_limiter, (layout, v, cell, neighbours, shifts))
 end
 
@@ -166,7 +166,7 @@ end
         mini = min(mini, dq)
         maxi = max(maxi, dq)
     end
-    # min and max of linear reconstruction evaluated at edge midpoints
+    # min and max of linear reconstruction evaluated at cell vertices
     edge_mini, edge_maxi = mini, maxi
     @unroll for iedge = 1:$deg
         dxyz = shifts[iedge]

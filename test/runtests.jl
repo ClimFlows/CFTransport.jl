@@ -12,23 +12,7 @@ using CFTransport.VoronoiSLFV:  backwards_trajectories!, VoronoiSLFV.SLFV_flux!
 
 using Test
 
-psi(lon, lat) = sin(lat) 
 bell((x,y,z)) = max(0, 1-2(z^2+x^2))
-
-function calc_delta2()
-    qmass, mass = @views conc.F[:,1], rho.F[:,1]
-    mflux = mass[1] * speed.F[:,1] 
-    @time disp, dx = SLFV_backtraj(mesh, mass, mflux)
-    @time qflux, gradq, q = SLFV_flux(mesh, disp, mass, mflux, qmass)
-
-    @time for (cell, deg) in enumerate(mesh.primal_deg)
-        @unroll deg in 5:7 begin
-            dvg = Stencils.divergence(mesh, cell, Val(deg))
-            delta_rho.F[cell] = -dvg(mflux)
-            delta_conc.F[cell] = -dvg(qflux)
-        end
-    end
-end
 
 function test_SLFV(sphere, mgr)
     # time stepping
@@ -55,20 +39,15 @@ function test_SLFV(sphere, mgr)
         backwards_trajectories!(disp, dx, mgr, sphere, mass, mflux)
         SLFV_flux!(qflux, gradq, q, mgr, sphere, disp, mass, mflux, qmass)
 
-        @info extrema(q)
+        mod(step,10)==1 && @info extrema(q)
 
         for (cell, deg) in enumerate(sphere.primal_deg)
-            @unroll deg in 5:7 begin
-                dvg = Stencils.divergence(sphere, cell, Val(deg))
-                qmass[cell] -= dvg(qflux)
-            end
+            qmass[cell] -= @unroll deg in 5:7 Stencils.divergence(sphere, cell, Val(deg))(qflux)
         end
 
     end
     @test minimum(q)>=0
     @test maximum(q)<=1
-#    @test minimum(q)<2e-5
-#    @test 1-maximum(q)<=1e-3
 end
 
 @testset "CFTransport.jl" begin
