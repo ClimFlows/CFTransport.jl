@@ -17,11 +17,11 @@ end
 
 @gen get_minmax(::Val{deg}, cell, neighbours, q) where {deg} = quote
     qcenter = q[cell]
-    mini, maxi = zero(qcenter), zero(qcenter)
+    mini, maxi = qcenter, qcenter
     @unroll for iedge in 1:($deg)
-        dq = q[neighbours[iedge]] - qcenter
-        mini = min(mini, dq)
-        maxi = max(maxi, dq)
+        qn = q[neighbours[iedge]]
+        mini = min(mini, qn)
+        maxi = max(maxi, qn)
     end
     return qcenter, mini, maxi
 end
@@ -35,6 +35,16 @@ end
         maxi = max(maxi, dq)
     end
     return qcenter, mini, maxi
+end
+
+@inl function get_minmax_dq(val, cell, neighbours, q)
+    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q)
+    return qcenter, mini-qcenter, maxi-qcenter
+end
+
+@inl function get_minmax_dq(val, cell, neighbours, q, k)
+    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q, k)
+    return qcenter, mini-qcenter, maxi-qcenter
 end
 
 #================ slope limiter =================#
@@ -81,16 +91,16 @@ end
 @inl function get_limiter(::SL_simple, ::VH, val::Val, cell, neighbours, radius2, gradq3d,
                           q)
     # min and max of q-qcenter over the current primal cell and its neighbours
-    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q)
+    qcenter, mini, maxi = get_minmax_dq(val, cell, neighbours, q)
     max_dq2 = min(mini * mini, maxi * maxi)
     est_dq2 = norm2(gradq3d) * radius2
-    return max_dq2 < est_dq2 ? sqrt(max_dq2 / est_dq2) : one(qcenter)
+    return @fastmath max_dq2 < est_dq2 ? sqrt(max_dq2 / est_dq2) : one(qcenter)
 end
 
 @inl function get_limiter(::SL_simple, ::VH, val::Val, cell, neighbours, radius2, gradq3d,
                           q, k)
     # min and max of q-qcenter over the current primal cell and its neighbours
-    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q, k)
+    qcenter, mini, maxi = get_minmax_dq(val, cell, neighbours, q, k)
     max_dq2 = min(mini * mini, maxi * maxi)
     est_dq2 = norm2(gradq3d) * radius2
     return max_dq2 < est_dq2 ? sqrt(max_dq2 / est_dq2) : one(qcenter)
@@ -101,7 +111,7 @@ norm2((x, y, z)) = x * x + y * y + z * z
 @gen get_limiter(::Union{SL,ML}, ::VH, val::Val{deg}, cell, neighbours, shifts, gradq3d, q) where {deg} = quote
     # gradq3d is expected to be a tuple (gx,gy,gz)
     # min and max of q-qcenter over the current primal cell and its neighbours
-    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q)
+    qcenter, mini, maxi = get_minmax_dq(val, cell, neighbours, q)
     # min and max of linear reconstruction evaluated at cell vertices
     edge_mini, edge_maxi = mini, maxi
     @unroll for iedge in 1:($deg)
@@ -120,7 +130,7 @@ end
     # gradq3d is expected to have layout [k, dim, cell] (VDHLayout)
     # q is expected to have layout [k, cell] (VHLayout)
     # min and max of q-qcenter over the current primal cell and its neighbours
-    qcenter, mini, maxi = get_minmax(val, cell, neighbours, q, k)
+    qcenter, mini, maxi = get_minmax_dq(val, cell, neighbours, q, k)
     # min and max of linear reconstruction evaluated at edge midpoints
     edge_mini, edge_maxi = mini, maxi
     @unroll for iedge in 1:($deg)
