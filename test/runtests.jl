@@ -15,8 +15,8 @@ using Test
 
 bell((x, y, z)) = max(0, 1 - 2(z^2 + x^2))
 
-function test_SLFV(lim, sphere, mgr)
-    @info lim
+function test_SLFV(lim, sphere, mgr, clip)
+    @info "Testing with $(typeof(lim)) and $clip:"
     # time stepping
     dt, time_steps = 0.01, 100
     # stream function for solid-body rotation
@@ -40,18 +40,18 @@ function test_SLFV(lim, sphere, mgr)
 
     for step in 1:time_steps
         mod(step-1, time_steps / 10) == 0 && @info (minimum(q), 1 - maximum(q), sum(qmass.*sphere.Ai))
-        step!(lim, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2)
+        step!(lim, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2, clip)
     end
     @test minimum(q) + eps(eltype(qmass)) >= 0
     @test maximum(q) <= 1
-    bench = @benchmark step!($lim, $qflux, $gradq, $q, $mgr, $sphere, $disp, $dx, $mass, $mflux, $qmass, $qmass2) seconds=1
-    display(bench)
+    bench = @benchmark step!($lim, $qflux, $gradq, $q, $mgr, $sphere, $disp, $dx, $mass, $mflux, $qmass, $qmass2, $clip) seconds=1
     @test bench.allocs == 0
+    display(bench)
 end
 
 # Euler step
 function step!(lim::Union{SL,SL_simple}, qflux, gradq, q, mgr, sphere, disp, dx, mass,
-               mflux, qmass, qmass2)
+               mflux, qmass, qmass2, clip)
 #    backwards_trajectories!(disp, dx, mgr, lim, sphere, mass, mflux)
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass)
     @. qmass2 = qmass
@@ -63,10 +63,12 @@ function step!(lim::Union{SL,SL_simple}, qflux, gradq, q, mgr, sphere, disp, dx,
     end
 end
 clip(qmin, qmax, q) = max(qmin, min(qmax, q))
+noclip(qmin, qmax, q) = q
+
 # clip(qmin, qmax, q) = q
 
 # Heun step
-function step!(lim::ML, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2)
+function step!(lim::ML, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2, clip)
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass)
     for (cell, deg) in enumerate(sphere.primal_deg)
         divflux = @unroll deg in 5:7 divergence(sphere, cell, Val(deg))(qflux)
@@ -86,12 +88,13 @@ function named_tuple(x)
 end
 
 @testset "CFTransport.jl" begin
-    sphere = VoronoiSphere(DYNAMICO_reader(ncread, "uni.1deg.mesh.nc"); prec=Float32)
+    sphere = VoronoiSphere(DYNAMICO_reader(ncread, "uni.1deg.mesh.nc"); prec=Float64)
     radius2_i = [maximum(norm2,
                          sphere.cen2vertex[edge, cell] for edge in 1:sphere.primal_deg[cell])
                  for cell in eachindex(sphere.Ai)]
     sphere = merge(named_tuple(sphere), (; radius2_i))
-    test_SLFV(ML(), sphere, PlainCPU())
-    test_SLFV(SL(), sphere, PlainCPU())
-    test_SLFV(SL_simple(), sphere, PlainCPU())
+    test_SLFV(ML(), sphere, PlainCPU(), noclip)
+    test_SLFV(SL(), sphere, PlainCPU(), clip)
+    test_SLFV(SL_simple(), sphere, PlainCPU(), clip)
+    test_SLFV(SL_simple(), sphere, PlainCPU(), noclip)
 end
