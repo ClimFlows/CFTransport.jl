@@ -1,4 +1,5 @@
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CFDomains = "3699aaca-035b-4155-96ec-eecb526248de"
 ClimFlowsData = "f57ce217-a21f-4063-8e40-561e9bf56723"
 LoopManagers = "d33d4f76-8fbe-47a6-acd9-ead534c583ff"
