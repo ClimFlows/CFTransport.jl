@@ -3,7 +3,7 @@ using NetCDF: ncread
 using ManagedLoops: @unroll
 using LoopManagers: PlainCPU
 using MutatingOrNot: void
-using ClimFlowsData: DYNAMICO_reader
+using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 using CFDomains: VoronoiSphere
 using CFDomains.Stencils: divergence, gradperp
 using CFTransport
@@ -31,15 +31,16 @@ function test_SLFV(lim, sphere, mgr, clip)
     # ensure that extrema(qmass) == (0,1)
     qmass = qmass .- minimum(qmass)
     qmass = qmass / maximum(qmass)
+    qmass0 = sum(qmass.*sphere.Ai)
 
     disp, dx = backwards_trajectories!(void, void, mgr, lim, sphere, mass, mflux)
     qflux, gradq, q = SLFV_flux!(void, void, void, mgr, lim, sphere, disp, mass, mflux,
                                  qmass)
 
-    @info "min(q), 1 - max(q), total mass"
+    @info "min(q), 1 - max(q), d(total mass)"
 
     for step in 1:time_steps
-        mod(step-1, time_steps / 10) == 0 && @info (minimum(q), 1 - maximum(q), sum(qmass.*sphere.Ai))
+        mod(step-1, time_steps / 10) == 0 && @info (minimum(q), 1 - maximum(q), 1-sum(qmass.*sphere.Ai)/qmass0)
         step!(lim, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2, clip)
     end
     @test minimum(q) + eps(eltype(qmass)) >= 0
@@ -88,7 +89,8 @@ function named_tuple(x)
 end
 
 @testset "CFTransport.jl" begin
-    sphere = VoronoiSphere(DYNAMICO_reader(ncread, "uni.1deg.mesh.nc"); prec=Float64)
+    meshfile = DYNAMICO_meshfile("uni.1deg.mesh.nc")
+    sphere = VoronoiSphere(DYNAMICO_reader(ncread, meshfile); prec=Float64)
     radius2_i = [maximum(norm2,
                          sphere.cen2vertex[edge, cell] for edge in 1:sphere.primal_deg[cell])
                  for cell in eachindex(sphere.Ai)]
