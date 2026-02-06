@@ -203,7 +203,8 @@ This layout favors SIMD vectorization on CPUs and merged memory accesses on GPUs
 function backwards_trajectories!(disp_, scratch, mgr, ::Union{SL,SL_simple}, vsphere,
                                  mass::AbstractVector, mflux::AbstractVector)
     # carrier mass and flux => normal component of carrier velocity
-    Udt = similar!(scratch, mflux)
+    T = promote_type(map(eltype, (mass, mflux))...)
+    Udt = similar!(scratch, mflux, T)
     @with mgr let edges = eachindex(vsphere.xyz_e)
         for edge in edges
             le, avg = vsphere.le[edge], average_ie(vsphere, edge)
@@ -211,7 +212,7 @@ function backwards_trajectories!(disp_, scratch, mgr, ::Union{SL,SL_simple}, vsp
         end
     end
     # dx = Udt = normal component => dy = tangential component => disp = displacement
-    disp = similar!(disp_, mflux, NTuple{3,eltype(mass)})
+    disp = similar!(disp_, mflux, NTuple{3,T})
     @with mgr let edges = eachindex(vsphere.xyz_e)
         @unroll for edge in edges
             xyz = vsphere.xyz_e[edge] # 3-uples
@@ -284,7 +285,8 @@ function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::Union{SL,SL_simple}, vsphere,
     return qflux, gradq, q
 end
 
-dot((a, b, c)::T, (x, y, z)::T) where {T<:NTuple{3}} = muladd(a, x, muladd(b, y, c * z))
+const Point{T} = NTuple{3, T}
+dot((a, b, c)::Point, (x, y, z)::Point) = muladd(a, x, muladd(b, y, c * z))
 
 function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::ML, vsphere, ::Nothing,
                     mass::AbstractVector, mflux::AbstractVector, qmass::AbstractVector)

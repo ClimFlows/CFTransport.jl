@@ -71,7 +71,7 @@ end
                 # integrate vertically the difference between
                 # current mass distribution and target mass distribution
                 # to get fluxes through interfaces
-                newmass[k, ij] = mass_level(2k - 1, masstot, vcoord)
+                newmass[k, ij] = mass_level(2k - 1, ij, masstot, vcoord)
                 flux[k+1, ij] = flux[k, ij] + (mass[k, ij] - newmass[k, ij])
             end
         end
