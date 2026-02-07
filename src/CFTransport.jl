@@ -1,7 +1,7 @@
 module CFTransport
 
-using MutatingOrNot: Void
-using ManagedLoops: @loops, @vec
+using MutatingOrNot: Void, similar!
+using ManagedLoops: @loops, @vec, @with
 using CFDomains: HVLayout, VHLayout, MassCoordinate, nlayer, mass_level
 
 export GodunovScheme, VanLeerScheme
