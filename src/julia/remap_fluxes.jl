@@ -102,10 +102,48 @@ end
         end
         for k = 1:N
             #=@vec=# for ij in range
-                newmass[ij, k] = mass_level(2k - 1, masstot[ij], vcoord)
+                newmass[ij, k] = mass_level(2k - 1, ij, masstot[ij], vcoord)
                 flux[ij, k+1] = flux[ij, k] + (mass[ij, k] - newmass[ij, k])
             end
         end
     end
 end
 
+"""
+    mass_dual, flux_dual = mass_flux_dual!(mass_dual, flux_dual, mgr, layout, mass, flux)
+
+Compute mass and mass fluxes on the vertical dual mesh. 
+`layout` specifies the data layout, see `CFDomains.VHLayout` and `CFDomains.HVLayout`.
+`mgr` is `nothing` or a user-provided loop manager, from e.g. `LoopManagers`.
+
+If `layout::HVLayout`, mass` and `flux` have sizes `(nx, N)` and `(nx, N+1)` respectively, 
+with `N` the number of layers. `mass_dual` and `flux_dual` have sizes `(nx, N)` and `(nx, N+1)`.
+They are interpolated as centered averages (except at boundaries).
+
+If inputs `mass_dual` and `flux_dual` are pre-allocated arrays, 
+they are written to and returned. Alternatively, they can be `::Void`, 
+in which case they are allocated and returned (see `MutatingOrNot`).
+"""
+function mass_flux_dual! end
+
+function mass_flux_dual!(mass_dual_, flux_dual_, mgr, ::HVLayout, mass, flux)
+    mass_dual = similar!(mass_dual_, flux)
+    flux_dual = similar!(flux_dual_, flux, size(flux,1), size(flux,2)+1)
+    @with mgr, let irange = axes(flux_dual, 1)
+        for i in irange
+            flux_dual[i,1] = 0
+            flux_dual[i, end] = 0
+            mass_dual[i,1] = mass[i,1]/2
+            mass_dual[i,end] = mass[i,end]/2
+        end
+        for i in irange, k in crop(axes(mass,2))
+            mass_dual[i,k+1] = (mass[i,k]+mass[i,k+1])/2
+        end
+        for i in irange, k in axes(mass,2)
+            flux_dual[i,k+1] = (flux[i,k]+flux[i,k+1])/2
+        end
+    end
+    return mass_dual, flux_dual
+end
+
+@inline crop(ax::Base.OneTo) = Base.OneTo(ax.stop-1)
