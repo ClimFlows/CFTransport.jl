@@ -100,3 +100,5 @@ end
     test_SLFV(SL_simple(), sphere, PlainCPU(), clip)
     test_SLFV(SL_simple(), sphere, PlainCPU(), noclip)
 end
+
+include("test_weno.jl")
