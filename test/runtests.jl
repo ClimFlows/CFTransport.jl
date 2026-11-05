@@ -59,7 +59,7 @@ function step!(lim::Union{SL,SL_simple}, qflux, gradq, q, mgr, sphere, disp, dx,
     @inbounds for (cell, deg) in enumerate(sphere.primal_deg)
         @unroll deg in 5:7 begin
             qc, qmin, qmax = local_minmax(sphere, cell, Val(deg))(qmass2)
-            qmass[cell] = clip(qmin, qmax, qc - div_form(sphere, cell, Val(deg))(qflux))
+            qmass[cell] = clip(qmin, qmax, qc - div_form(sphere, cell)(qflux))
         end
     end
 end
@@ -71,13 +71,13 @@ noclip(qmin, qmax, q) = q
 # Heun step
 function step!(lim::ML, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2, clip)
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass)
-    for (cell, deg) in enumerate(sphere.primal_deg)
-        divflux = @unroll deg in 5:7 div_form(sphere, cell, Val(deg))(qflux)
+    for cell in eachindex(sphere.primal_deg)
+        divflux = div_form(sphere, cell)(qflux)
         qmass2[cell] = qmass[cell] - divflux
     end
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass2)
-    for (cell, deg) in enumerate(sphere.primal_deg)
-        divflux = @unroll deg in 5:7 div_form(sphere, cell, Val(deg))(qflux)
+    for cell in eachindex(sphere.primal_deg)
+        divflux = div_form(sphere, cell)(qflux)
         qmass[cell] = (qmass[cell] + (qmass2[cell] - divflux)) / 2
     end
 end

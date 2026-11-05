@@ -268,7 +268,7 @@ function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::Union{SL,SL_simple}, vsphere,
         @inbounds for cell in cells
             deg = vsphere.primal_deg[cell]
             @unroll deg in 5:7 begin
-                grad = gradient3d(vsphere, cell, Val(deg))(q) # tuple grad = (gx,gy,gz)
+                grad = gradient3d(vsphere, cell)(q) # tuple grad = (gx,gy,gz)
                 alpha = lim(vsphere, cell, Val(deg))(grad, q)
                 gradq[cell] = @unroll (alpha * grad[dim] for dim in 1:3)
             end
@@ -296,7 +296,7 @@ function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::ML, vsphere, ::Nothing,
         for cell in cells
             deg = vsphere.primal_deg[cell]
             @unroll deg in 5:7 begin
-                grad = gradient3d(vsphere, cell, Val(deg))(q) # tuple grad = (gx,gy,gz)
+                grad = gradient3d(vsphere, cell)(q) # tuple grad = (gx,gy,gz)
                 alpha = lim(vsphere, cell, Val(deg))(grad, q)
                 gradq[cell] = @unroll (alpha * grad[dim] for dim in 1:3)
             end
