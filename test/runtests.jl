@@ -3,9 +3,9 @@ using NetCDF: ncread
 using ManagedLoops: @unroll
 using LoopManagers: PlainCPU
 using MutatingOrNot: void
-using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
-using CFDomains: VoronoiSphere
-using CFDomains.Stencils: divergence, gradperp
+using ClimFlowsData: DYNAMICO_reader, VoronoiMeshes
+using VoronoiSpheres: VoronoiSphere
+using VoronoiSpheres.Stencils: div_form, gradperp
 using CFTransport
 using CFTransport.VoronoiSLFV: backwards_trajectories!, SLFV_flux!, local_minmax,
                                SL, SL_simple, ML
@@ -59,7 +59,7 @@ function step!(lim::Union{SL,SL_simple}, qflux, gradq, q, mgr, sphere, disp, dx,
     @inbounds for (cell, deg) in enumerate(sphere.primal_deg)
         @unroll deg in 5:7 begin
             qc, qmin, qmax = local_minmax(sphere, cell, Val(deg))(qmass2)
-            qmass[cell] = clip(qmin, qmax, qc - divergence(sphere, cell, Val(deg))(qflux))
+            qmass[cell] = clip(qmin, qmax, qc - div_form(sphere, cell, Val(deg))(qflux))
         end
     end
 end
@@ -72,12 +72,12 @@ noclip(qmin, qmax, q) = q
 function step!(lim::ML, qflux, gradq, q, mgr, sphere, disp, dx, mass, mflux, qmass, qmass2, clip)
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass)
     for (cell, deg) in enumerate(sphere.primal_deg)
-        divflux = @unroll deg in 5:7 divergence(sphere, cell, Val(deg))(qflux)
+        divflux = @unroll deg in 5:7 div_form(sphere, cell, Val(deg))(qflux)
         qmass2[cell] = qmass[cell] - divflux
     end
     SLFV_flux!(qflux, gradq, q, mgr, lim, sphere, disp, mass, mflux, qmass2)
     for (cell, deg) in enumerate(sphere.primal_deg)
-        divflux = @unroll deg in 5:7 divergence(sphere, cell, Val(deg))(qflux)
+        divflux = @unroll deg in 5:7 div_form(sphere, cell, Val(deg))(qflux)
         qmass[cell] = (qmass[cell] + (qmass2[cell] - divflux)) / 2
     end
 end
@@ -89,7 +89,7 @@ function named_tuple(x)
 end
 
 @testset "CFTransport.jl" begin
-    meshfile = DYNAMICO_meshfile("uni.1deg.mesh.nc")
+    meshfile = VoronoiMeshes("uni.1deg.mesh.nc")
     sphere = VoronoiSphere(DYNAMICO_reader(ncread, meshfile); prec=Float64)
     radius2_i = [maximum(norm2,
                          sphere.cen2vertex[edge, cell] for edge in 1:sphere.primal_deg[cell])
