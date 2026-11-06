@@ -4,14 +4,14 @@ module VoronoiSLFV
 # Dubey & Dubos, 2015
 
 using CFDomains: VHLayout as VH, HVLayout as HV
-using CFDomains.Stencils: Fix, @inl, @gen, average_ie, perp, gradient3d
+using VoronoiSpheres.Stencils: Fix, @inl, @gen, average_ie, perp, gradient3d
 using ManagedLoops: @with, @unroll, @vec
 using MutatingOrNot: similar!
 
 #=============== local min and max ==============#
 
 @gen local_minmax(vsphere, cell, v::Val{deg}) where {deg} = quote
-    neighbours = @unroll (vsphere.primal_neighbour[edge, cell] for edge in 1:($deg))
+    neighbours = @unroll (vsphere.primal_neighbour[cell][edge] for edge in 1:($deg))
     Fix(get_minmax, (v, cell, neighbours))
 end
 
@@ -76,7 +76,7 @@ struct ML <: Limiter end
 
 # internal
 @gen limiter(lim, vsphere, layout, cell, v::Val{deg}) where {deg} = quote
-    neighbours = @unroll (vsphere.primal_neighbour[edge, cell] for edge in 1:($deg))
+    neighbours = @unroll (vsphere.primal_neighbour[cell][edge] for edge in 1:($deg))
     Fix(get_limiter, (lim, layout, v, cell, neighbours, shifts(lim, vsphere, cell, v)))
 end
 
@@ -171,8 +171,8 @@ end
 #================== upwind cell =================#
 
 @inl upwind_cell(vsphere, edge) = Fix(get_upwind,
-                                      (vsphere.edge_left_right[1, edge],
-                                       vsphere.edge_left_right[2, edge]))
+                                      (vsphere.edge_left_right[edge][1],
+                                       vsphere.edge_left_right[edge][2]))
 @inl get_upwind(left, right, flux, x) = @vec flux > 0 ? x[left] : x[right]
 
 #===============  back-trajectories =============#
@@ -268,7 +268,7 @@ function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::Union{SL,SL_simple}, vsphere,
         @inbounds for cell in cells
             deg = vsphere.primal_deg[cell]
             @unroll deg in 5:7 begin
-                grad = gradient3d(vsphere, cell, Val(deg))(q) # tuple grad = (gx,gy,gz)
+                grad = gradient3d(vsphere, cell)(q) # tuple grad = (gx,gy,gz)
                 alpha = lim(vsphere, cell, Val(deg))(grad, q)
                 gradq[cell] = @unroll (alpha * grad[dim] for dim in 1:3)
             end
@@ -296,7 +296,7 @@ function SLFV_flux!(qflux_, gradq_, q_, mgr, lim::ML, vsphere, ::Nothing,
         for cell in cells
             deg = vsphere.primal_deg[cell]
             @unroll deg in 5:7 begin
-                grad = gradient3d(vsphere, cell, Val(deg))(q) # tuple grad = (gx,gy,gz)
+                grad = gradient3d(vsphere, cell)(q) # tuple grad = (gx,gy,gz)
                 alpha = lim(vsphere, cell, Val(deg))(grad, q)
                 gradq[cell] = @unroll (alpha * grad[dim] for dim in 1:3)
             end
