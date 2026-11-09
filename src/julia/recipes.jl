@@ -1,9 +1,14 @@
 include("schemes.jl")
 include("axes.jl")
 
-abstract type MULT end
-abstract type BYONE<:MULT end
-abstract type BYHALF<:MULT end
+abstract type Mult end
+struct ByOne <: Mult end
+BYONE = ByOne()
+struct ByHalf <: Mult end
+BYHALF = ByHalf()
+
+(::ByOne)(a,b) = a*b
+(::ByHalf)(a,b) = a*b/2
 
 abstract type Perm{a,b,c} end
 
@@ -99,7 +104,32 @@ function IPrecipe(T, axes::A,perm,scheme,maxorder,::Type{COEF}) where {A<:AXES,C
     IPrecipe{scheme,T,O,newA,AX1,COEF}(permuted_axes,order,qm,ax1)
 end
 
+# 2D case
+function VFrecipes(u::V,axes::AX,scheme,maxorder) where {T,AX<:Axes,
+  A<:Array{T,3},
+  V<:Tuple{A,A}}
+     return (VFrecipe(T, axes, (1,2,3), scheme, maxorder,true),
+             VFrecipe(T, axes, (2,1,3), scheme, maxorder,true))
+end
 
+# 3D case
+function VFrecipes(u::V,axes::AX,scheme,maxorder) where {T,AX<:Axes,
+  A<:Array{T,3},
+  V<:Tuple{A,A,A}}
+     components = [1,2,3]
+
+     recipes = Dict{Tuple{Integer,Integer}, VFrecipe}()
+     for ax1 in components
+         for ax2 in setdiff(components, ax1)
+             ax3 = setdiff(components, [ax1, ax2])[1]
+             #println("$ax1  $ax2  $ax3")
+             recipes[(ax1,ax2)] = VFrecipe(T, axes, (ax1,ax2,ax3),
+             				   scheme, maxorder,true)
+
+         end
+     end
+     return recipes
+end
 
 function is_valid_size_arrays(du::A,v::A,omega::A,recipe::R)::Bool where {S,onleft,T,O,AX,a,b,c,
                                                                     R<:VFrecipe{S,onleft,T,O,AX,a,b,c},

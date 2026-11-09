@@ -124,7 +124,7 @@ function innerproduct_oneterm(q::A,
 
         #println("$(size(u1d))  $(size(U1d))   $(size(qm))")
 
-        @. qm = u1d*U1d
+        @. qm = COEF()(u1d,U1d)
 
         rightpencil(q1d,
                     qm,
@@ -151,6 +151,13 @@ view2d(q,k,::Val{1}) = view(q,k,:,:)
 view1d(q,i,j,::Val{3}) = view(q,i,j,:)
 view1d(q,i,j,::Val{2}) = view(q,i,:,j)
 view1d(q,i,j,::Val{1}) = view(q,:,i,j)
+
+view1d(q,i,j,::Val{1},::Val{2}) = view(q,i,j,:)
+view1d(q,i,j,::Val{1},::Val{3}) = view(q,i,:,j)
+view1d(q,i,j,::Val{2},::Val{3}) = view(q,:,i,j)
+view1d(q,i,j,::Val{2},::Val{1}) = view(q,j,i,:)
+view1d(q,i,j,::Val{3},::Val{1}) = view(q,j,:,i)
+view1d(q,i,j,::Val{3},::Val{2}) = view(q,:,j,i)
 
 Base.view(::Val{N},ind...) where N = Val(N)
 
