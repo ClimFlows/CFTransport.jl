@@ -124,7 +124,7 @@ function innerproduct_oneterm(q::A,
 
         #println("$(size(u1d))  $(size(U1d))   $(size(qm))")
 
-        @. qm = u1d*U1d
+        @. qm = COEF()(u1d,U1d)
 
         rightpencil(q1d,
                     qm,
@@ -137,10 +137,6 @@ function innerproduct_oneterm(q::A,
     return
 end
 
-(::BYONE)(a,b) = a*b
-(::BYHALF)(a,b) = a*b/2
-
-
 # (::Val{true})(x) = x
 # (::Val{false})(x) = -x
 
@@ -152,7 +148,12 @@ view1d(q,i,j,::Val{3}) = view(q,i,j,:)
 view1d(q,i,j,::Val{2}) = view(q,i,:,j)
 view1d(q,i,j,::Val{1}) = view(q,:,i,j)
 
-Base.view(::Val{N},ind...) where N = Val(N)
+view1d(q,i,j,::Val{1},::Val{2}) = view(q,i,j,:)
+view1d(q,i,j,::Val{1},::Val{3}) = view(q,i,:,j)
+view1d(q,i,j,::Val{2},::Val{3}) = view(q,:,i,j)
+view1d(q,i,j,::Val{2},::Val{1}) = view(q,j,i,:)
+view1d(q,i,j,::Val{3},::Val{1}) = view(q,j,:,i)
+view1d(q,i,j,::Val{3},::Val{2}) = view(q,:,j,i)
 
 
 
@@ -177,7 +178,7 @@ nx,ny,nz,nhalo = 100, 100, 3, 3
 axi = Axis(CLOSED, nx, nhalo)
 axj = Axis(CLOSED, ny, nhalo)
 axk = Axis(CLOSED, nz, nhalo)
-axes = AXES(axi,axj,axk)
+axes = Axes(axi,axj,axk)
 
 scheme = UP
 maxorder = 6
