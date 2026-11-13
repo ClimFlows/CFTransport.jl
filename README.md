@@ -1,5 +1,11 @@
 # CFTransport
 
+## Change Log
+
+### v0.1.11
+
+* Use ManagedLoops vector loops in concentration calculations for GPU compatibility.
+
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ClimFlows.github.io/CFTransport.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ClimFlows.github.io/CFTransport.jl/dev/)
 [![Build Status](https://github.com/ClimFlows/CFTransport.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/ClimFlows/CFTransport.jl/actions/workflows/CI.yml?query=branch%3Amain)

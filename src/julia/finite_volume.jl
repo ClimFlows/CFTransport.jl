@@ -10,7 +10,7 @@ abstract type OneDimFV{kind,Dim,Rank} <: OneDimOp{Dim,Rank} end
 # compute concentrations from densities
 @loops function concentrations!(_, q, mq, m)
     let range = eachindex(mq)
-        @fast @simd for i in range
+        @fast @vec for i in range
             q[i] = mq[i]*inv(m[i])
         end
     end

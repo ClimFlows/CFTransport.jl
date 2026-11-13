@@ -89,6 +89,10 @@ function named_tuple(x)
 end
 
 @testset "CFTransport.jl" begin
+    q, mq, mass = zeros(3), [2.0, 6.0, 12.0], [2.0, 3.0, 4.0]
+    CFTransport.concentrations!(PlainCPU(), q, mq, mass)
+    @test q == [1.0, 2.0, 3.0]
+
     meshfile = VoronoiMeshes("uni.1deg.mesh.nc")
     sphere = VoronoiSphere(DYNAMICO_reader(ncread, meshfile); prec=Float64)
     radius2_i = [maximum(norm2,
