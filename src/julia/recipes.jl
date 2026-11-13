@@ -1,6 +1,3 @@
-include("schemes.jl")
-include("axes.jl")
-
 abstract type Mult end
 struct ByOne <: Mult end
 BYONE = ByOne()
@@ -21,10 +18,10 @@ function permute(triplet::T,perm) where T
     return triplet[collect(perm)] :: T
 end
 
-Base.collect(axes::A) where {A<:AXES} = [axes.ax1,axes.ax2,axes.ax3]
+Base.collect(axes::A) where {A<:Axes} = [axes.ax1,axes.ax2,axes.ax3]
 
 
-struct VFrecipe{S<:SCHEME,onleft,T,O,A<:AXES,a,b,c}
+struct VFrecipe{S<:SCHEME,onleft,T,O,A<:Axes,a,b,c}
     axes::A
     order::O
     q::Vector{T}
@@ -32,25 +29,25 @@ struct VFrecipe{S<:SCHEME,onleft,T,O,A<:AXES,a,b,c}
     checksize::Bool
 end
 
-struct DFrecipe{S<:SCHEME,T,O,A<:AXES,AX1}
+struct DFrecipe{S<:SCHEME,T,O,A<:Axes,AX1}
     axes::A
     order::O
     flux::Vector{T}
     ax1:: AX1
 end
 
-struct IPrecipe{S<:SCHEME,T,O,AX<:AXES,AX1,COEF}
+struct IPrecipe{S<:SCHEME,T,O,AX<:Axes,AX1,COEF}
     axes::AX
     order::O
     qm::Vector{T}
     ax1:: AX1
 end
 
-function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:AXES}
+function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:Axes}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     # work pencils to be sent in rightpencil
     n = size(permuted_axes.ax2,EDGES)
@@ -65,11 +62,11 @@ function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:AXE
     VFrecipe{scheme,onleft,T,O,newA,a,b,c}(permuted_axes,order,q,U_at_q,checksize)
 end
 
-function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:AXES}
+function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:Axes}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     n = size(permuted_axes.ax1,EDGES)
     flux = zeros(T,n)
@@ -85,11 +82,11 @@ function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:AXES}
 end
 
 
-function IPrecipe(T, axes::A,perm,scheme,maxorder,::Type{COEF}) where {A<:AXES,COEF<:MULT}
+function IPrecipe(T, axes::A,perm,scheme,maxorder,::COEF) where {A<:Axes,COEF<:Mult}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     n = size(permuted_axes.ax1,EDGES)
     qm = zeros(T,n)
