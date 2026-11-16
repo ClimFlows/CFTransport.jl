@@ -1,9 +1,11 @@
-include("schemes.jl")
-include("axes.jl")
+abstract type Mult end
+struct ByOne <: Mult end
+BYONE = ByOne()
+struct ByHalf <: Mult end
+BYHALF = ByHalf()
 
-abstract type MULT end
-abstract type BYONE<:MULT end
-abstract type BYHALF<:MULT end
+(::ByOne)(a,b) = a*b
+(::ByHalf)(a,b) = a*b/2
 
 abstract type Perm{a,b,c} end
 
@@ -16,10 +18,10 @@ function permute(triplet::T,perm) where T
     return triplet[collect(perm)] :: T
 end
 
-Base.collect(axes::A) where {A<:AXES} = [axes.ax1,axes.ax2,axes.ax3]
+Base.collect(axes::A) where {A<:Axes} = [axes.ax1,axes.ax2,axes.ax3]
 
 
-struct VFrecipe{S<:SCHEME,onleft,T,O,A<:AXES,a,b,c}
+struct VFrecipe{S<:SCHEME,onleft,T,O,A<:Axes,a,b,c}
     axes::A
     order::O
     q::Vector{T}
@@ -27,25 +29,25 @@ struct VFrecipe{S<:SCHEME,onleft,T,O,A<:AXES,a,b,c}
     checksize::Bool
 end
 
-struct DFrecipe{S<:SCHEME,T,O,A<:AXES,AX1}
+struct DFrecipe{S<:SCHEME,T,O,A<:Axes,AX1}
     axes::A
     order::O
     flux::Vector{T}
     ax1:: AX1
 end
 
-struct IPrecipe{S<:SCHEME,T,O,AX<:AXES,AX1,COEF}
+struct IPrecipe{S<:SCHEME,T,O,AX<:Axes,AX1,COEF}
     axes::AX
     order::O
     qm::Vector{T}
     ax1:: AX1
 end
 
-function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:AXES}
+function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:Axes}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     # work pencils to be sent in rightpencil
     n = size(permuted_axes.ax2,EDGES)
@@ -60,11 +62,11 @@ function VFrecipe(T, axes::A,perm,scheme,maxorder,checksize=false) where {A<:AXE
     VFrecipe{scheme,onleft,T,O,newA,a,b,c}(permuted_axes,order,q,U_at_q,checksize)
 end
 
-function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:AXES}
+function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:Axes}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     n = size(permuted_axes.ax1,EDGES)
     flux = zeros(T,n)
@@ -80,11 +82,11 @@ function DFrecipe(T, axes::A,perm,scheme,maxorder) where {A<:AXES}
 end
 
 
-function IPrecipe(T, axes::A,perm,scheme,maxorder,::Type{COEF}) where {A<:AXES,COEF<:MULT}
+function IPrecipe(T, axes::A,perm,scheme,maxorder,::COEF) where {A<:Axes,COEF<:Mult}
     a,b,c = perm
     @assert is_valid_permutation(a,b,c)
 
-    permuted_axes = AXES(permute(collect(axes),perm)...)
+    permuted_axes = Axes(permute(collect(axes),perm)...)
 
     n = size(permuted_axes.ax1,EDGES)
     qm = zeros(T,n)
@@ -99,7 +101,32 @@ function IPrecipe(T, axes::A,perm,scheme,maxorder,::Type{COEF}) where {A<:AXES,C
     IPrecipe{scheme,T,O,newA,AX1,COEF}(permuted_axes,order,qm,ax1)
 end
 
+# 2D case
+function VFrecipes(u::V,axes::AX,scheme,maxorder) where {T,AX<:Axes,
+  A<:Array{T,3},
+  V<:Tuple{A,A}}
+     return (VFrecipe(T, axes, (1,2,3), scheme, maxorder,true),
+             VFrecipe(T, axes, (2,1,3), scheme, maxorder,true))
+end
 
+# 3D case
+function VFrecipes(u::V,axes::AX,scheme,maxorder) where {T,AX<:Axes,
+  A<:Array{T,3},
+  V<:Tuple{A,A,A}}
+     components = [1,2,3]
+
+     recipes = Dict{Tuple{Integer,Integer}, VFrecipe}()
+     for ax1 in components
+         for ax2 in setdiff(components, ax1)
+             ax3 = setdiff(components, [ax1, ax2])[1]
+             #println("$ax1  $ax2  $ax3")
+             recipes[(ax1,ax2)] = VFrecipe(T, axes, (ax1,ax2,ax3),
+             				   scheme, maxorder,true)
+
+         end
+     end
+     return recipes
+end
 
 function is_valid_size_arrays(du::A,v::A,omega::A,recipe::R)::Bool where {S,onleft,T,O,AX,a,b,c,
                                                                     R<:VFrecipe{S,onleft,T,O,AX,a,b,c},

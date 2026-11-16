@@ -20,21 +20,21 @@ Axis(::Type{CLOSED}, n, nhalo) = Axis{CLOSED, Int64}(n, 0)
 Axis(::Type{EMPTY}, n, nhalo) = Axis{EMPTY, Int64}(0, 0)
 
 # this type is extensively used in API
-struct AXES{A,B,C<:Axis}
+struct Axes{A,B,C<:Axis}
     ax1::A
     ax2::B
     ax3::C
 end
 
 
-Axes(nx,ny,nz,nhalo,A,B,C) = AXES(Axis(A,nx,nhalo), Axis(B,ny,nhalo), Axis(C,nz,nhalo))
+Axes(nx,ny,nz,nhalo,A,B,C) = Axes(Axis(A,nx,nhalo), Axis(B,ny,nhalo), Axis(C,nz,nhalo))
 
 # size of an array along this axis, the size depends on the location for CLOSED axis
 Base.size(a::Axis{HALOED}, ::Type{L}) where {L<:LOCATION} = a.n+2a.nhalo
 Base.size(a::Axis{CLOSED}, ::Type{CENTERS}) = a.n
 Base.size(a::Axis{CLOSED}, ::Type{EDGES}) = a.n+1
 Base.size(a::Axis{EMPTY}, ::Type{L}) where {L<:LOCATION} = 1
-Base.size(axes::AXES, location)::Tuple{Int64,Int64,Int64} = Tuple(size(d,l) for (d,l) in zip([axes.ax1,axes.ax2,axes.ax3],location))
+Base.size(axes::Axes, location)::Tuple{Int64,Int64,Int64} = Tuple(size(d,l) for (d,l) in zip([axes.ax1,axes.ax2,axes.ax3],location))
 
 # iterators, for the expressiveness of loops and also to avoid computations in the halo
 @inline (::Type{CENTERS})(a::Axis{HALOED,T} where {T})=a.nhalo+1:a.nhalo+a.n

@@ -18,8 +18,8 @@ function vortex_force(du::V, omega::V, U::V, recipes) where {T,
     components = [1,2,3]
     for ax1 in components
         for ax2 in setdiff(components, ax1)
-            ax3 = setdiff(components, [ax1, ax2])
-            vortex_force_oneterm(du[ax1], U[ax2], omega[ax3], recipes[ax1][ax2])
+	    ax3 = setdiff(components, [ax1, ax2])[1]
+	    vortex_force_oneterm(du[ax1], U[ax2], omega[ax3], recipes[(ax1,ax2)])
         end
     end
 
