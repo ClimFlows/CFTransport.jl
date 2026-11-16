@@ -40,12 +40,12 @@ function vortex_force_oneterm(du::A,
     for i in INTERIOREDGES(axes.ax1), k in CENTERS(axes.ax3)
 
         average(U_at_q, view2d(v,k,Val(c)), axes.ax2, i, onleft)
-        om = view1d(omega,i,k,Val(b))
+        om = view1d(omega,i,k,Val(a),Val(c))
         @. q = applysign(U_at_q*om)
 
-        rightpencil(view1d(du,i,k,Val(b)),
+        rightpencil(view1d(du,i,k,Val(a), Val(c)),
                     q, U_at_q,
-                    view1d(order,i,k,Val(b)),
+                    view1d(order,i,k,Val(a), Val(c)),
                     axes.ax2, S)
 
     end
